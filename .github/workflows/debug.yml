@@ -28,7 +28,6 @@ jobs:
             -d "{\"appId\":\"$APP_ID\",\"clientSecret\":\"$CLIENT_SECRET\"}" \
             | jq -r '.access_token')
           echo "token长度: ${#TOKEN}"
-
           echo "=== 发群消息原始响应（看 X-Tps-trace-ID 和 body）==="
           curl -s -i -X POST "https://api.bot.qq.com/v2/groups/$GROUP_OPENID/messages" \
             -H "Content-Type: application/json; charset=utf-8" \
