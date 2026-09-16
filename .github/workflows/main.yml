@@ -1,0 +1,28 @@
+name: QQ Group Notify
+
+on:
+  push:
+    branches: [main]
+  # 也可手动触发测试：Actions 页面 → Run workflow
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "消息内容"
+        required: false
+        default: "手动触发：CI 通知测试"
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 推送消息到 QQ 群
+        env:
+          # 这里是 Webhook 的调用口令，对应 Worker 的 AUTH_KEY（不是 clientSecret！）
+          QQ_KEY: ${{ secrets.QQ_KEY }}
+          # 你的 Worker 地址，例如 https://qq-webhook.xxx.workers.dev
+          WEBHOOK_URL: ${{ secrets.QQ_WEBHOOK_URL }}
+          MSG: ${{ github.event.inputs.message || 'CI 构建/推送成功' }}
+        run: |
+          curl -X POST "$WEBHOOK_URL?key=$QQ_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"msg\":\"$MSG\"}"
