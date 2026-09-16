@@ -1,34 +1,37 @@
-name: QQ API Debug
+name: QQ 发消息测试
 
-# 用途：绕过 Worker，直接用 GitHub Actions 调 QQ 发群消息接口，
-# 把 token 和原始响应（含 X-Tps-trace-ID）全部打印出来，定位 40011000。
-# 运行：GitHub → Actions → QQ API Debug → Run workflow
+# 直接复制本文件到 .github/workflows/qq-debug.yml
+# 运行：GitHub → Actions → QQ 发消息测试 → Run workflow
+# 注意：把下面 env 里的三个值换成你自己的真实值（clientSecret 会明文进仓库，按需权衡）
 on:
   workflow_dispatch:
     inputs:
       message:
-        description: "测试消息内容"
+        description: "要发送的消息"
         required: false
-        default: "测试"
+        default: "测试消息"
 
 jobs:
-  debug:
+  send:
     runs-on: ubuntu-latest
+    env:
+      APP_ID: "1905624108"
+      CLIENT_SECRET: "ywjU5TecNvFLFvNb"
+      GROUP_OPENID: "CBF024063447F1F31379F78DC8BE7B13"
+      MSG: ${{ github.event.inputs.message }}
     steps:
-      - name: 获取 token 并直接调用发群消息接口
-        env:
-          APP_ID: ${{ secrets.QQ_APP_ID }}
-          CLIENT_SECRET: ${{ secrets.QQ_CLIENT_SECRET }}
-          GROUP_OPENID: ${{ secrets.QQ_GROUP_OPENID }}
-          MSG: ${{ github.event.inputs.message }}
+      - name: 取 token 并直接发群消息
         run: |
+          set +x  # 不在日志里回显 token
           TOKEN=$(curl -s -X POST https://api.bot.qq.com/app/getAppAccessToken \
             -H 'Content-Type: application/json' \
             -d "{\"appId\":\"$APP_ID\",\"clientSecret\":\"$CLIENT_SECRET\"}" \
-            | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+            | jq -r '.access_token')
+          echo "token长度: ${#TOKEN}"
 
-          echo "--- 发送群消息原始响应 ---"
+          echo "=== 发群消息原始响应（看 X-Tps-trace-ID 和 body）==="
           curl -s -i -X POST "https://api.bot.qq.com/v2/groups/$GROUP_OPENID/messages" \
             -H "Content-Type: application/json; charset=utf-8" \
             -H "Authorization: QQBot $TOKEN" \
             -d "{\"msg_type\":0,\"content\":\"$MSG\",\"msg_seq\":1}"
+          echo ""
