@@ -1,0 +1,39 @@
+name: QQ API Debug
+
+# 用途：绕过 Worker，直接用 GitHub Actions 调 QQ 发群消息接口，
+# 把 token 和原始响应（含 X-Tps-trace-ID）全部打印出来，定位 40011000。
+# 运行：GitHub → Actions → QQ API Debug → Run workflow
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "测试消息内容"
+        required: false
+        default: "测试"
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 获取 token 并直接调用发群消息接口
+        env:
+          APP_ID: ${{ secrets.QQ_APP_ID }}
+          CLIENT_SECRET: ${{ secrets.QQ_CLIENT_SECRET }}
+          GROUP_OPENID: ${{ secrets.QQ_GROUP_OPENID }}
+          MSG: ${{ github.event.inputs.message }}
+        run: |
+          echo "=== 1) 获取 access_token ==="
+          TOKEN_JSON=$(curl -s -X POST https://api.bot.qq.com/app/getAppAccessToken \
+            -H 'Content-Type: application/json' \
+            -d "{\"appId\":\"$APP_ID\",\"clientSecret\":\"$CLIENT_SECRET\"}")
+          echo "$TOKEN_JSON"
+          TOKEN=$(echo "$TOKEN_JSON" | jq -r '.access_token')
+          echo "token 长度: ${#TOKEN}"
+
+          echo ""
+          echo "=== 2) 直接发送群消息（含响应头，看 X-Tps-trace-ID）==="
+          curl -s -i -X POST "https://api.bot.qq.com/v2/groups/$GROUP_OPENID/messages" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -H "Authorization: QQBot $TOKEN" \
+            -d "{\"msg_type\":0,\"content\":\"$MSG\",\"msg_seq\":1}"
+          echo ""
