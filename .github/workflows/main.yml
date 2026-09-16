@@ -23,6 +23,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.QQ_WEBHOOK_URL }}
           MSG: ${{ github.event.inputs.message || 'CI 构建/推送成功' }}
         run: |
-          curl -X POST "$WEBHOOK_URL?key=$QQ_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"msg\":\"$MSG\"}"
+          TOKEN=$(curl -s -X POST https://api.bot.qq.com/app/getAppAccessToken \
+            -H 'Content-Type: application/json' \
+            -d '{"appId":"1905624108","clientSecret":"ywjU5TecNvFLFvNb"}' \
+            | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
