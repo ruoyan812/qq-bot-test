@@ -22,18 +22,13 @@ jobs:
           GROUP_OPENID: ${{ secrets.QQ_GROUP_OPENID }}
           MSG: ${{ github.event.inputs.message }}
         run: |
-          echo "=== 1) 获取 access_token ==="
-          TOKEN_JSON=$(curl -s -X POST https://api.bot.qq.com/app/getAppAccessToken \
+          TOKEN=$(curl -s -X POST https://api.bot.qq.com/app/getAppAccessToken \
             -H 'Content-Type: application/json' \
-            -d "{\"appId\":\"$APP_ID\",\"clientSecret\":\"$CLIENT_SECRET\"}")
-          echo "$TOKEN_JSON"
-          TOKEN=$(echo "$TOKEN_JSON" | jq -r '.access_token')
-          echo "token 长度: ${#TOKEN}"
+            -d "{\"appId\":\"$APP_ID\",\"clientSecret\":\"$CLIENT_SECRET\"}" \
+            | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
 
-          echo ""
-          echo "=== 2) 直接发送群消息（含响应头，看 X-Tps-trace-ID）==="
+          echo "--- 发送群消息原始响应 ---"
           curl -s -i -X POST "https://api.bot.qq.com/v2/groups/$GROUP_OPENID/messages" \
             -H "Content-Type: application/json; charset=utf-8" \
             -H "Authorization: QQBot $TOKEN" \
             -d "{\"msg_type\":0,\"content\":\"$MSG\",\"msg_seq\":1}"
-          echo ""
